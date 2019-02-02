@@ -48,7 +48,7 @@ target      项目编译完成后 文件的存放位置
 -   git pull --allow-unrelated-histories  应该是类似的功能 
 - 基本就是这个样子的
 -------------------------------------------------------------
-    
+
 - maven的常用命令
 - 清理：就是把我编译好的文件进行一个清除,编译好有一个target文件 执行mvn clean后,这个文件就被清除了
 - mvn clean
@@ -65,10 +65,104 @@ target      项目编译完成后 文件的存放位置
 - defaultLifeCycle: 默认生命周期 compile test package install deploy
 - siteLifeCycle: 站点生命周期 mvn site 
 - 不同的生命周期相互不影响,在一套生命周期中，执行后面的命令，前面的操作会自动执行
-
 - maven 整合web项目案例
 - 如果是eclipse的话 需要安装maven插件  然后配置一下maven
 - 如果是idea 在settings中进行设置 这个看视频发现这个比eclipse要好处理一些 这个其实在创建项目的时候就配置好了
-
 - 如何进行构建索引(为了快速找到jar) setting maven repositories 然后里面就有你之前构建的索引 
+- Group Id 公司名称,公司域名的倒叙 Artifact Id 项目名称 
+- SNAPSHOT 测试版本  RELEASES 正式版本 
+- 依赖范围
+- 我们添加依赖范围模式是 compile 其中的provided 表示的意思是 部署到Tomcat后就不在需要了
+- 那么这个是怎么进行作用的呢？
+
+```xml
+<dependency>
+      <groupId>javax.servlet</groupId>
+      <artifactId>servlet-api</artifactId>
+      <version>2.5</version>
+      <scope>provided</scope>
+ </dependency>
+
+<!--注意到上面的scope了没有 这个表示就是你这个jar的应用范围在哪里 对于servlet来说 我们需要指定scope 因为项目到时候部署到Tomcat中 Tomcat中也有一个jar servlet-api.jar 会导致jar冲突
+也就是我们如果使用Tomcat中的一些jar 我们需要设置scope中的范围 provided-->
+```
+
+
+
+| 依赖范围 | 对于编译classpath有效 | 对于测试classpath有效 | 对于运行classpath有效 | example                 |
+| -------- | :-------------------: | :-------------------: | :-------------------: | ----------------------- |
+| compile  |           Y           |           Y           |           Y           | spring-core             |
+| test     |           -           |           Y           |           -           | junit                   |
+| provided |           Y           |           Y           |           -           | servlet                 |
+| runtime  |           -           |           Y           |           Y           | JDBC驱动                |
+| system   |           Y           |           Y           |           -           | 本地maven仓库之外的仓库 |
+
+
+
+- Maven 实战
+
+1. 传递依赖冲突解决
+
+   传递依赖 A 依赖 B  ，B依赖 C，   B 是 A 的直接依赖  C 是 A 的传递依赖
+
+   问题的描述就是 依赖相同的jar但是他们的版本不同
+
+   **Maven自己的调整原则** 
+
+   1.1 第一声明者优先原则 也就是谁先定义的 我就用谁的
+
+   1.2 路径近者优先原则  直接依赖的级别高于传递依赖
+
+   **Maven排除依赖**
+
+   ```xml
+    <dependency>
+         <groupId>javax.servlet</groupId>
+         <artifactId>servlet-api</artifactId>
+         <version>2.5</version>
+         <scope>provided</scope>
+        
+         <exclusions>
+           <exclusion>
+             <groupId>javax.servlet</groupId>
+             <artifactId>servlet-api</artifactId>
+           </exclusion>
+         </exclusions>
+        
+       </dependency>
+   <!-- 
+   	假如你添加的jar本身有一些依赖 你不想用这些依赖的时候 你就可以使用排除依赖 那么它就不会引用
+    	你排除在外的jar了  配置的方式就是添加exclusions ...
+   -->
+   ```
+
+   **Maven版本的锁定**
+
+   ```xml
+   <!--
+   	指定项目中所需要的版本 最外层用的是dependencyManagement 这个节点只是用来管理版本的 不是进行	 依赖导入的 依赖导入的用的是dependencies
+   -->
+   <dependencyManagement>
+       <dependencies>
+         <dependency>
+           <groupId>junit</groupId>
+           <artifactId>junit</artifactId>
+           <version>${j.version}</version>
+         </dependency>
+       </dependencies>
+     </dependencyManagement>
+   
+   <!--
+   	如果很多的jar用的版本号都是一样的 我们就可以提取一个属性出来
+   	其中的junit.version 你可以随意命名的 可以叫j.version
+   	用的话是 ${j.version}
+   	这样我们在进行版本升级的时候也非常方便
+   -->
+   
+    <properties>
+       <junit.version>4.11</junit.version>
+     </properties>
+   ```
+
+   
 
